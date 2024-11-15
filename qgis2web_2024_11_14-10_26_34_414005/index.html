@@ -130,20 +130,70 @@
         var map = L.map('map', { zoomControl: false, maxZoom: 28, minZoom: 1 })
             .fitBounds([[34.723814493466314,10.801451861272579],[57.68270960518914,60.33327437076074]]);
         var hash = new L.Hash(map);
-
+    
+        // Add a blue-circle style marker for user location
+        function showUserLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const userLat = position.coords.latitude;
+                        const userLng = position.coords.longitude;
+    
+                        // Define a blue circle for the location
+                        const locationMarker = L.circleMarker([userLat, userLng], {
+                            radius: 10, // Adjust the size
+                            color: '#007bff', // Blue border
+                            fillColor: '#007bff', // Blue fill
+                            fillOpacity: 0.5, // Slightly transparent
+                            weight: 2 // Border thickness
+                        }).addTo(map);
+    
+                        // Add a pulse effect to mimic Google Maps
+                        const pulseCircle = L.circle([userLat, userLng], {
+                            radius: 50, // Larger pulsing circle
+                            color: '#007bff',
+                            fillOpacity: 0.1,
+                            opacity: 0
+                        }).addTo(map);
+    
+                        // Center the map on the user's location
+                        map.setView([userLat, userLng], 14);
+    
+                        // Add an animation loop for the pulsing effect
+                        let grow = true;
+                        setInterval(() => {
+                            const currentRadius = pulseCircle.getRadius();
+                            if (grow && currentRadius < 100) {
+                                pulseCircle.setRadius(currentRadius + 5);
+                            } else if (!grow && currentRadius > 50) {
+                                pulseCircle.setRadius(currentRadius - 5);
+                            }
+                            grow = currentRadius >= 100 ? false : currentRadius <= 50 ? true : grow;
+                        }, 100);
+                    },
+                    (error) => {
+                        console.error("Error retrieving user location: ", error);
+                        alert("Unable to retrieve your location.");
+                    }
+                );
+            } else {
+                alert("Geolocation is not supported by your browser.");
+            }
+        }
+    
         function populateSidePanel(content) {
             document.getElementById('panelContent').innerHTML = content;
             document.getElementById('sidePanel').classList.add('open');
             document.getElementById('map').classList.add('shifted');
         }
-
+    
         function closeSidePanel() {
             document.getElementById('sidePanel').classList.remove('open');
             document.getElementById('map').classList.remove('shifted');
             document.getElementById('previewFrame').style.display = "none";
             document.getElementById('previewFrame').src = "";
         }
-
+    
         function removeEmptyRowsFromContent(content, feature) {
             var tempDiv = document.createElement('div');
             tempDiv.innerHTML = content;
@@ -157,25 +207,25 @@
             });
             return tempDiv.innerHTML;
         }
-
+    
         function createLinks(webPageString) {
             if (!webPageString) return ""; // Return empty if no URLs
-
+    
             // Split the URLs by '|' delimiter and map each to an HTML link with preview capability
             const links = webPageString.split('|').map(url => {
                 return `<a href="#" onclick="showPreview('${url}'); return false;">${url}</a>`;
             });
-
+    
             // Join each link with a separator for display
             return links.join('<br>'); // For line breaks
         }
-
+    
         function showPreview(url) {
             const previewFrame = document.getElementById("previewFrame");
             previewFrame.src = url;
             previewFrame.style.display = "block"; // Show the iframe
         }
-
+    
         function onEachFeature(feature, layer) {
             layer.on('click', function () {
                 const webPages = feature.properties['Pagina Web'] || '';
@@ -191,12 +241,12 @@
                 populateSidePanel(content);
             });
         }
-
+    
         var baseMapLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             minZoom: 1,
             maxZoom: 28
         }).addTo(map);
-
+    
         function style_BlocuriledeStudii_2_0() {
             return {
                 icon: L.icon({
@@ -206,26 +256,32 @@
                 interactive: true
             };
         }
+    
         map.on('click', function () {
             closeSidePanel();  // Close the side panel when the map is clicked
         });
+    
         var cluster_BlocuriledeStudii_2 = L.markerClusterGroup({
             showCoverageOnHover: false,
             spiderfyOnMaxZoom: true,
             spiderfyDistanceMultiplier: 2
         });
-
+    
         var layer_BlocuriledeStudii_2 = L.geoJson(json_BlocuriledeStudii_2, {
             onEachFeature: onEachFeature,
             pointToLayer: function (feature, latlng) {
                 return L.marker(latlng, style_BlocuriledeStudii_2_0());
             }
         });
-
+    
         cluster_BlocuriledeStudii_2.addLayer(layer_BlocuriledeStudii_2);
         map.addLayer(cluster_BlocuriledeStudii_2);
-
+    
         L.control.layers({"Satellite": baseMapLayer}, {"Blocurile de Studii": cluster_BlocuriledeStudii_2}, {position: 'topleft'}).addTo(map);
+    
+        // Call the function to display user location
+        showUserLocation();
     </script>
+    
 </body>
 </html>
