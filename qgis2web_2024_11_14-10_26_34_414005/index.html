@@ -235,8 +235,9 @@
     
         function onEachFeature(feature, layer) {
     layer.on('click', function () {
-        // Retrieve properties, or set them as empty strings if they don't exist
         const webPages = feature.properties['Pagina Web'] || '';
+        // Retrieve properties, or set them as empty strings if they don't exist
+
         const webPagess = feature.properties['Inscriere'] || '';
         const nrCamin = feature.properties['Nr. Camin'] || '';
         const facultatea = feature.properties['Facultatea'] || '';
