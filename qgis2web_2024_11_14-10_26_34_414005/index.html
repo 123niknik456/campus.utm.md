@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
     <link rel="stylesheet" href="css/leaflet.css">
@@ -101,7 +103,11 @@
             margin-top: 10px;
         }
     </style>
-    <title>Map with Side Panel and Layers</title>
+    <title>Campus UTM</title>
+    <!-- Leaflet Routing Machine CSS and JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+
 </head>
 <body>
     <div id="map"></div>
@@ -125,8 +131,9 @@
     <script src="js/leaflet-measure.js"></script>
     <script src="js/leaflet.markercluster.js"></script>
     <script src="data/BlocuriledeStudii_2.js"></script>
-    
+    <script src="data/CamineUTM_2.js"></script>
     <script>
+        
         var map = L.map('map', { zoomControl: false, maxZoom: 28, minZoom: 1 })
             .fitBounds([[34.723814493466314,10.801451861272579],[57.68270960518914,60.33327437076074]]);
         var hash = new L.Hash(map);
@@ -227,25 +234,120 @@
         }
     
         function onEachFeature(feature, layer) {
-            layer.on('click', function () {
-                const webPages = feature.properties['Pagina Web'] || '';
-                var content = `<table>
-                    <tr><th>Facultatea</th><td class="visible-with-data" id="Facultatea">${feature.properties['Facultatea'] || ''}</td></tr>
-                    <tr><th>Decan</th><td class="visible-with-data" id="Decan">${feature.properties['Decan'] || ''}</td></tr>
-                    <tr><th>Adresa</th><td class="visible-with-data" id="Adresa">${feature.properties['Adresa'] || ''}</td></tr>
-                    <tr><th>Nr Telefon</th><td class="visible-with-data" id="Nr Telefon">${feature.properties['Nr Telefon'] || ''}</td></tr>
-                    <tr><th>Blocul_</th><td class="visible-with-data" id="Blocul_">${feature.properties['Blocul_'] || ''}</td></tr>
-                    <tr><th>Pagina Web</th><td>${createLinks(webPages)}</td></tr>
-                </table>`;
-                content = removeEmptyRowsFromContent(content, feature);
-                populateSidePanel(content);
-            });
+    layer.on('click', function () {
+        // Retrieve properties, or set them as empty strings if they don't exist
+        const webPages = feature.properties['Pagina Web'] || '';
+        const webPagess = feature.properties['Inscriere'] || '';
+        const nrCamin = feature.properties['Nr. Camin'] || '';
+        const facultatea = feature.properties['Facultatea'] || '';
+        const decan = feature.properties['Decan'] || '';
+        const adresa = feature.properties['Adresa'] || '';
+        const nrTelefon = feature.properties['Nr Telefon'] || '';
+        const blocul = feature.properties['Blocul_'] || '';
+        const camin = feature.properties['Camine'] || '';
+
+        // Build the table content conditionally based on whether data exists
+        let content = `<table>`;
+
+        // Keep track of how many rows are added for Facultate or Camin
+        let facultateInfoCount = 0;
+        let caminInfoCount = 0;
+
+        if (facultatea) {
+            content += `<tr><th>Facultatea</th><td>${facultatea}</td></tr>`;
+            facultateInfoCount++;
         }
+        if (decan) {
+            content += `<tr><th>Decan</th><td>${decan}</td></tr>`;
+            facultateInfoCount++;
+        }
+        if (adresa) {
+            content += `<tr><th>Adresa</th><td>${adresa}</td></tr>`;
+            facultateInfoCount++;
+        }
+        if (nrTelefon) {
+            content += `<tr><th>Nr Telefon</th><td>${nrTelefon}</td></tr>`;
+            facultateInfoCount++;
+        }
+        if (blocul) {
+            content += `<tr><th>Blocul</th><td>${blocul}</td></tr>`;
+            facultateInfoCount++;
+        }
+        if (camin) {
+            content += `<tr><th>Camin</th><td>${camin}</td></tr>`;
+            caminInfoCount++;
+        }
+        if (webPages) {
+            content += `<tr><th>Pagina Web</th><td>${createLinks(webPages)}</td></tr>`;
+        }
+        if (webPagess) {
+            content += `<tr><th>Inscriere</th><td>${createLinks(webPagess)}</td></tr>`;
+        }
+        if (nrCamin) {
+            content += `<tr><th>Nr. Camin</th><td>${nrCamin}</td></tr>`;
+            caminInfoCount++;
+        }
+
+        content += `</table>`;
+
+        // Set the panel title dynamically based on the reversed condition for "Nr. Camin"
+        let panelTitle = "Informație despre Camine"; // Default to "Informație despre Camine"
+        
+        // Reverse condition: If "Nr. Camin" is empty, show "Informație despre Facultate"
+        if (!nrCamin) {
+            panelTitle = "Informație despre Facultate"; // Change title if "Nr. Camin" is empty
+        }
+
+        // Update the panel title dynamically
+        document.getElementById('sidePanel').querySelector('h2').innerText = panelTitle;
+
+        // Remove empty rows if any data was missing
+        content = removeEmptyRowsFromContent(content, feature);
+        
+        // Populate the side panel with the content
+        populateSidePanel(content);
+    });
+}
+
+
+
     
         var baseMapLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             minZoom: 1,
             maxZoom: 28
         }).addTo(map);
+
+        function style_CamineUTM_2_0() {
+            return {
+                icon: L.icon({
+                    iconUrl: 'markers/CamineUTM_2.svg',
+                    iconSize: [76, 76]
+                }),
+                interactive: true
+            };
+        }
+    
+        map.on('click', function () {
+            closeSidePanel();  // Close the side panel when the map is clicked
+        });
+    
+        var cluster_CamineUTM_2 = L.markerClusterGroup({
+            showCoverageOnHover: false,
+            spiderfyOnMaxZoom: true,
+            spiderfyDistanceMultiplier: 2
+        });
+    
+        var layer_CamineUTM_2 = L.geoJson(json_CamineUTM_2, {
+            onEachFeature: onEachFeature,
+            pointToLayer: function (feature, latlng) {
+                return L.marker(latlng, style_CamineUTM_2_0());
+            }
+        });
+    
+        cluster_CamineUTM_2.addLayer(layer_CamineUTM_2);
+        map.addLayer(cluster_CamineUTM_2);
+    
+        
     
         function style_BlocuriledeStudii_2_0() {
             return {
@@ -276,12 +378,24 @@
     
         cluster_BlocuriledeStudii_2.addLayer(layer_BlocuriledeStudii_2);
         map.addLayer(cluster_BlocuriledeStudii_2);
-    
-        L.control.layers({"Satellite": baseMapLayer}, {"Blocurile de Studii": cluster_BlocuriledeStudii_2}, {position: 'topleft'}).addTo(map);
+        var roadMapLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+});
+
+// Update the layers control with the new "Road Map" layer
+L.control.layers(
+    {"Satellite": baseMapLayer, "Road Map": roadMapLayer},  // Base layers
+    {
+        "Blocurile de Studii": cluster_BlocuriledeStudii_2,  // The Blocurile de Studii layer
+        "Camine": cluster_CamineUTM_2  // The Camine layer
+    },
+    { position: 'topleft' }  // Position of the control
+).addTo(map);
     
         // Call the function to display user location
         showUserLocation();
-    </script>
+
+</script>
     
 </body>
 </html>
